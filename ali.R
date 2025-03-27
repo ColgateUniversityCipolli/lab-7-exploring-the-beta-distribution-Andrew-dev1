@@ -1,6 +1,8 @@
 library(tidyverse)
 library(e1071)
 library(patchwork)
+library(cumstats)
+library(nleqslv)
 ####################################################
 # Plot the beta distributions and calculate variables
 ####################################################
@@ -22,10 +24,12 @@ calculate <- function(alpha, beta){
     )  
   return(dat.comparison)
 }
-
-value.dat2 <- betas %>%
+betas <- tibble(alpha = c(2,5,5,0.5), beta = c(5,5,2,0.5))
+value.dat <- betas %>%
   pmap_dfr(~calculate(..1, ..2))
-figure1.data <- tibble(x = seq(0, 1.0, length.out=500))|>   # generate a grid of points
+
+sequence <- seq(0, 1.0, length.out=500)
+figure1.data <- tibble(x = sequence)|>   # generate a grid of points
   mutate(beta.2.5 = dbeta(x, 2, 5),
          beta.5.5 = dbeta(x, 5, 5),
          beta.5.2 = dbeta(x, 5, 2),
@@ -48,12 +52,12 @@ beta.distributions <- ggplot(data= figure1.data)+                               
 # Task Two, moment function was created to bypass the unknown x variable 
 beta.moment <- function(alpha, beta, k, centered){
   moment <- function(x) {
-    x^n * dbeta(x, shape1 = alpha, shape2 = beta)
+    x^k * dbeta(x, shape1 = alpha, shape2 = beta)
   }
   value <- integrate(moment, lower = 0, upper = 1)$value
   if(centered){
     center.moment <- function(x) {
-      (x-value)^n * dbeta(x, shape1 = alpha, shape2 = beta)
+      (x-value)^k * dbeta(x, shape1 = alpha, shape2 = beta)
     }
     return(integrate(center.moment, lower = 0, upper = 1)$value)
   }
@@ -119,4 +123,175 @@ samples <- list(
 sample.values.dat <- map_dfr(samples, ~ calculate2(.x[[1]], .x[[2]], .x[[3]]))
 comparison <- merge(value.dat, sample.values.dat, all.y = T, all.x = T)
 
+
 ## Task four 
+
+dat.beta.2.5 <- tibble(x = beta.sample1)|>   # generate a grid of points
+  mutate(beta.pdf = dbeta(x, shape1 = 2, shape2 = 5),
+         cummulative.mean = cummean(x),
+         cummulative.variance = cumvar(x),
+         cummulative.skewness = cumskew(x),
+         cummulative.kurtosis = cumkurt(x)
+         )
+
+
+
+mean.plot <- ggplot()+
+  geom_line(data = dat.beta.2.5, aes(x = 1:500, y = cummulative.mean))+
+  geom_hline(yintercept = comparison$mean[2])+
+  theme_bw()+                                                          # change theme
+  xlab("x")+                                                           # label x axis
+  ylab("Cumulative means")
+
+variance.plot <- ggplot()+
+  geom_line(data = dat.beta.2.5, aes(x = 1:500, y = cummulative.variance))+
+  geom_hline(yintercept = comparison$variance[2])+
+  theme_bw()+                                                          # change theme
+  xlab("x")+                                                           # label x axis
+  ylab("variances")
+
+skewness.plot <- ggplot()+
+  geom_line(data = dat.beta.2.5, aes(x = 1:500, y = cummulative.skewness))+
+  geom_hline(yintercept = comparison$skewness[2])+
+  theme_bw()+                                                          # change theme
+  xlab("x")+                                                           # label x axis
+  ylab("Skewnesses")
+
+kurtosis.plot <- ggplot()+
+  geom_line(data = dat.beta.2.5, aes(x = 1:500, y = cummulative.kurtosis))+
+  geom_hline(yintercept = comparison$excess.kurtosis[2])+
+  theme_bw()+                                                          # change theme
+  xlab("x")+                                                           # label x axis
+  ylab("Kurts")
+ 
+(mean.plot + variance.plot) / (skewness.plot + kurtosis.plot)
+
+
+
+for(i in 2:50){
+  set.seed(7272 + i)
+  beta.sample <- rbeta(n = sample.size,  # sample size
+                        shape1 = 2,   # alpha parameter
+                        shape2 = 5)
+  loops.data <- tibble(x = beta.sample)|>   # generate a grid of points
+    mutate(beta.pdf = dbeta(x, shape1 = 2, shape2 = 5),
+           cummulative.mean = cummean(x),
+           cummulative.variance = cumvar(x),
+           cummulative.skewness = cumskew(x),
+           cummulative.kurtosis = cumkurt(x)
+    )  
+  mean.plot <- mean.plot +
+    geom_line(data = loops.data, aes(x = 1:500, y = cummulative.mean), color= i)
+  variance.plot <- variance.plot +
+    geom_line(data = loops.data, aes(x = 1:500, y = cummulative.variance), color= i)
+  skewness.plot <- skewness.plot +
+    geom_line(data = loops.data, aes(x = 1:500, y = cummulative.skewness), color= i)
+  kurtosis.plot <- kurtosis.plot +
+    geom_line(data = loops.data, aes(x = 1:500, y = cummulative.kurtosis), color= i)
+  
+}
+
+(mean.plot + variance.plot) / (skewness.plot + kurtosis.plot)
+
+##Task 5 
+summary <- tibble()
+for(i in 1:1000){
+  set.seed(7272 + i)
+  beta.sample <- rbeta(n = sample.size, 
+                       shape1 = 2,   
+                       shape2 = 5)
+  summary <- rbind(summary, calculate2(beta.sample, 0, i))
+  
+}
+ggplot(summary)+
+  geom_histogram(aes(x = mean, y = after_stat(density)))+
+  stat_density(aes(x = mean), geom="line")+
+  theme_bw()
+
+ggplot(summary)+
+  geom_histogram(aes(x = variance, y = after_stat(density)))+
+  stat_density(aes(x = variance), geom="line")+
+  theme_bw()
+
+
+# ggplot(summary)+
+#   geom_histogram(aes(x = variance, y = after_stat(density)))
+# ggplot(summary)+
+#   geom_histogram(aes(x = skewness, y = after_stat(density)))
+# ggplot(summary)+
+#   geom_histogram(aes(x = excess.kurtosis, y = after_stat(density)))
+#############################
+# Task Six
+#############################
+
+deaths.data <- read_csv(file = "Global deaths from World Bank/total_deaths.csv",
+                        skip = 4) |>
+  select(c(1,2,3,4,67)) |>
+  rename("y2022" = "2022") |>
+  mutate(y2022 = y2022 /1000) |>
+  mutate(y2022 = case_when(is.na(y2022) ~ 0,
+                   TRUE ~ y2022))
+
+ggplot(deaths.data)+
+  geom_histogram(aes(x =  y2022))+
+  theme_bw()
+
+MOM.beta <- function(data, par){
+  alpha <- par[1]
+  beta <- par[2]
+  
+  EX1 <- alpha/ (alpha +beta)
+  EX2 <- (alpha * (alpha +1))/((alpha + beta + 1) * (alpha +beta))
+  
+  m1 <- mean(data)
+  m2 <- mean(data^2)
+  
+  return( c(EX1 - m1, EX2 - m2) )
+}
+
+moms<- nleqslv(x = c(1,1),
+               fn = MOM.beta,
+               data=deaths.data$y2022)
+
+alpha.moms <- moms$par[1]
+beta.moms <- moms$par[2]
+
+moms.internal <- MOM.beta(deaths.data$y2022, c(1,1))
+
+MLE.beta <- function(data, par, neg = F){
+  alpha <- par[1]
+  beta <- par[2]
+  ll <- sum(log(dbeta(x = data, shape1 = alpha, shape2 = beta)))
+  
+  return(ifelse(neg, -ll, ll))
+}
+
+mles <- optim(par = c(1, 1),
+              fn = MLE.beta,
+              data=deaths.data$y2022,
+              neg=T)
+
+alpha.mle <- mles$par[1]
+beta.mle <- mles$par[2]
+
+result <- tibble()
+for(i in 1:1000){
+  set.seed(7272+i)
+  beta.sample <- rbeta(n = 266,      # sample size
+                       shape1 = 8,   # alpha parameter
+                       shape2 = 950) # beta parameter
+  moms.internal <- nleqslv(x = c(1,1),
+                           fn = MOM.beta,
+                           data= beta.sample)
+  mles.internal <- optim(par = c(1, 1),
+                         fn = MLE.beta,
+                         data= beta.sample,
+                         neg=T)
+  
+  
+  result <- bind_rows(result, tibble(moms.alpha = moms.internal$par[1], 
+                                     moms.beta = moms.internal$par[2],
+                                     mles.alpha = mles.internal$par[1], 
+                                     mles.beta = mles.internal$par[2]))
+}
+
