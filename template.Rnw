@@ -24,7 +24,7 @@
 \begin{document}
 
 \vspace{-1in}
-\title{Lab XX -- MATH 240 -- Computational Statistics}
+\title{Lab 8 -- MATH 240 -- Computational Statistics}
 
 \author{
   Andrew Li \\
@@ -50,6 +50,7 @@ The beta distribution is a continuous distribution that can be used to model the
 
 By exploring its properties, the effects of various inputs can be seen to answer our questions about what the beta distribution is, what it can be used for, what are some of its properties, and what useful inferences can be drawn from simulation and real data analysis. 
 
+The \texttt{R} packages that were used are tidyverse\citep{tidyverse} for data cleaning and plotting, patchwork\citep{patchwork} for combining graphs, e1071\citep{e1071} for calculating properties, xtable\citep{xtable} for table creation, nleqslv\citep{nleqslv} for point estimation calculations, and cumstats\citep{cumstats} for measuring cumulative statistics. 
 
 %\begin{Figure}
 %\includegraphics{screenshot}
@@ -121,29 +122,117 @@ Then we explored how the law of large numbers is proven to be true as the increa
 \end{tabular} \caption{population moments } \label{table1}
 \end{table}
 
-
-
 \section{Estimators}
-
-\section{Results}
-Tie together the Introduction -- where you introduce the problem at hand -- and the methods --  what you propose to do to answer the question. Present your data, the results of your analyses, and how each reported aspect contributes to answering the question. This section should include table(s), statistic(s), and graphical displays. Make sure to put the results in a sensible order and that each result contributes a logical and developed solution. It should not just be a list. Avoid being repetitive. 
-
-\subsection{Results Subsection}
-Subsections can be helpful for the Results section, too. This can be particularly helpful if you have different questions to answer. 
+We created a Method of Moments (MOM) point estimator and Maximum Likelihood Estimator (MLE) to calculate the two unknown parameters of $\alpha$ and $\beta$. To use the MOM, we had to find the first two moments of the beta distribution . The first moment is calculated as $\frac{\alpha}{\alpha + \beta}$ while the second is denoted by $\frac {\alpha * (\alpha +1)}{(\alpha + \beta + 1) * (\alpha +\beta)}$. Normally, you can create a symbol of equations and, through substitution, find out what each moment would be using only the sample value for the MOM, and the MLE would have required taking the likelihood of every x and then optimizing the values to find the maximum. We reduced the computations required with \texttt{R}. 
 
 
-\section{Discussion}
- You should objectively evaluate the evidence you found in the data. Do not embellish or wish-terpet (my made-up phase for making an interpretation you, or the researcher, wants to be true without the data \emph{actually} supporting it). Connect your findings to the existing information you provided in the Introduction.
 
-Finally, provide some concluding remarks that tie together the entire paper. Think of the last part of the results as abstract-like. Tell the reader what they just consumed -- what's the takeaway message?
+<<eval = F, echo=F, warning=F, message=F, size= 'scriptsize' >>=
+MOM.beta <- function(data, par){
+  alpha <- par[1]
+  beta <- par[2]
+  EX1 <- alpha/ (alpha +beta)
+  EX2 <- (alpha * (alpha +1))/((alpha + beta + 1) * (alpha +beta))
+  m1 <- mean(data)
+  m2 <- mean(data^2)
+  
+  return( c(EX1 - m1, EX2 - m2) )
+}
+
+MLE.beta <- function(data, par, neg = F){
+  alpha <- par[1]
+  beta <- par[2]
+  ll <- sum(log(dbeta(x = data, shape1 = alpha, shape2 = beta)))
+  
+  return(ifelse(neg, -ll, ll))
+}
+@
+
+
+\section{Example}
+After running a thousand samples of size 266 with $\alpha$ = 8, $\beta$ = 950 to model the world death data, we were able to compare the accuracy (bias) and variability (precision) of the two point estimators. Looking at the Figure \ref{plot4}, it can be seen that the MLE has less variability because its values doesn't spread as much and has a taller peak. This is further verified when looking at the numerical values in table \ref{table2}, so the MLE is the better point estimator.
+
+<<echo=FALSE, eval=T, message=FALSE, warning=FALSE, size='scriptsize'>>=
+library(nleqslv)
+MOM.beta <- function(data, par){
+  alpha <- par[1]
+  beta <- par[2]
+  EX1 <- alpha/ (alpha +beta)
+  EX2 <- (alpha * (alpha +1))/((alpha + beta + 1) * (alpha +beta))
+  m1 <- mean(data)
+  m2 <- mean(data^2)
+  
+  return( c(EX1 - m1, EX2 - m2) )
+}
+
+MLE.beta <- function(data, par, neg = F){
+  alpha <- par[1]
+  beta <- par[2]
+  ll <- sum(log(dbeta(x = data, shape1 = alpha, shape2 = beta)))
+  
+  return(ifelse(neg, -ll, ll))
+}
+
+alpha = 8
+beta = 950
+result <- tibble()
+for(i in 1:1000){
+  set.seed(7272+i)
+  beta.sample <- rbeta(n = 266,      # sample size
+                       shape1 = alpha,   # alpha parameter
+                       shape2 = beta) # beta parameter
+
+  moms.internal <- nleqslv(x = c(1,1),
+                           fn = MOM.beta,
+                           data= beta.sample)
+  mles.internal <- optim(par = c(1,1),
+                         fn = MLE.beta,
+                         data= beta.sample,
+                         neg=T)
+  result <- bind_rows(result, tibble(moms.alpha = moms.internal$x[1],
+                                     moms.beta = moms.internal$x[2],
+                                     mles.alpha = mles.internal$par[1],
+                                     mles.beta = mles.internal$par[2]))
+}
+
+
+values = function(theta.hats, theta){
+  (bias <- mean(theta.hats) - theta)
+  (precision <- 1/var(theta.hats))
+  (mse <- var(theta.hats) + bias^2)
+  return(tibble(bias, precision, mse))
+}
+
+a.moms <- values(result$moms.alpha, alpha)
+b.moms <- values(result$moms.beta, beta)
+a.mles <- values(result$mles.alpha, alpha)
+b.mles <- values(result$mles.beta, beta)
+
+accuracy <- tibble()|> 
+  bind_rows(a.moms, b.moms, a.mles, b.mles) |> 
+  mutate(names = c("moms alpha", "moms beta", "mles alpha", "mles beta"),
+        actual = c(alpha, beta, alpha, beta),
+        estimated = c(mean(result$moms.alpha), mean(result$moms.beta), 
+                      mean(result$mles.alpha), mean(result$mles.beta))
+         )
+table2 <- xtable(accuracy,
+                 caption = "Table to compare estimator values",
+                 label = "table2")
+
+@
+<<echo=FALSE, eval=TRUE, results="asis">>=
+print(table2,
+      table.placement = "H", 
+      include.rownames = FALSE, 
+      size = "small", 
+      caption.placement = "bottom")
+@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Bibliography
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \vspace{2em}
 
-\noindent\textbf{Bibliography:} Note that when you add citations to your bib.bib file \emph{and}
-you cite them in your document, the bibliography section will automatically populate here.
 
 \begin{tiny}
 \bibliography{bib}
@@ -338,6 +427,48 @@ for(i in 2:50){
 \label{plot3} 
 \end{center}
 \end{figure}
+
+<<plot4, echo=FALSE, eval=F, message=FALSE, warning=FALSE, size='scriptsize'>>=
+plot.moms.alpha = ggplot(data = result, aes(x = moms.alpha)) + 
+  geom_density(fill = "#FD8A8A")+ 
+  theme_bw() +
+  geom_hline(yintercept=0)+
+  xlab("alpha values from moms")+
+  ggtitle("Estimated density for moms")
+
+plot.moms.beta = ggplot(data = result, aes(x = moms.beta)) + 
+  geom_density(fill = "#A8D1D1")+ 
+  theme_bw() +
+  geom_hline(yintercept=0)+
+  xlab("beta values from moms")+
+  ggtitle("Estimated density for moms")
+
+plot.mles.alpha = ggplot(data = result, aes(x = mles.alpha)) + 
+  geom_density(fill = "#d5d1e9")+ 
+  theme_bw() +
+  geom_hline(yintercept=0)+
+  xlab("alpha values from mles")+
+  ggtitle("Estimated density for mles")
+
+plot.mles.beta = ggplot(data = result, aes(x = mles.beta)) + 
+  geom_density(fill = "#f5cf9f")+ 
+  theme_bw() +
+  geom_hline(yintercept=0)+
+  xlab("beta values from mles")+
+  ggtitle("Estimated density for mles")
+
+(plot.moms.alpha + plot.moms.beta) / (plot.mles.alpha + plot.mles.beta)
+@
+\begin{figure}[H]
+\begin{center}
+<<echo=FALSE, warning=FALSE, message=FALSE, fig.dim=c(5,3.5)>>=
+<<plot4>>
+@
+\caption{Densities of alpha and beta values from point estimators}
+\label{plot4} 
+\end{center}
+\end{figure}
+
 
 \end{multicols}
 \end{document}
