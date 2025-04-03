@@ -7,6 +7,7 @@ library(nleqslv)
 # Plot the beta distributions and calculate variables
 ####################################################
 
+## create a function to calculate the mean, variance, skewness, and excess kurtosis
 calculate <- function(alpha, beta){
   beta.mean <- alpha/ (alpha +beta)
   beta.variance <- (alpha*beta)/ ((alpha +beta)^2 *(alpha+beta+1))
@@ -71,6 +72,22 @@ beta.moment <- function(alpha, beta, k, centered){
 beta.moment(2,3,4,T)
 
 
+calculate.pop(alpha, beta, ){
+  beta.moment(alpha, beta, k, T)
+  pop.mean <- alpha/ (alpha +beta)
+  pop.var <- 
+  
+  dat.comparison <- tibble() %>%
+    summarize(variable = sprintf("Beta(%g,%g)", alpha,beta),
+              mean = pop.mean,
+              variance = beta.variance,
+              skewness = beta.skewness,
+              excess.kurtosis = beta.kurtosis
+    )  
+}
+value.dat2 <- betas %>%
+  pmap_dfr(~calculate.pop(..1, ..2))
+
 # Task three: create random beta samples to view distributions
 set.seed(7272)
 
@@ -108,17 +125,16 @@ beta.sample4 <- rbeta(n = sample.size,  # sample size
 sample.df4 <- as.data.frame(beta.sample4)
 betaplot4 <- ggplot(sample.df4, aes(x= beta.sample4))+
   geom_histogram(aes(y = after_stat(density)),
-                 breaks = seq(from = 0, to = 1, by = 0.075))
+                 breaks = seq(from = 0, to = 1, by = 0.1))
 
-(betaplot1 + betaplot2)
-(betaplot3 + betaplot4)
+(betaplot1 + betaplot2)/(betaplot3 + betaplot4)
 
 calculate2 <- function(beta.sample, num1, num2){
   tibs <- tibble()|>
     summarize(variable = sprintf("Sample Beta(%g,%g)", num1, num2),
             mean = mean(beta.sample),
             variance = var(beta.sample),
-            skewness = skewness(beta.sample),
+            skew = skewness(beta.sample),
             excess.kurtosis = kurtosis(beta.sample)
     )
   return(tibs)
@@ -224,16 +240,19 @@ ggplot(summary)+
   theme_bw()
 
 
-# ggplot(summary)+
-#   geom_histogram(aes(x = variance, y = after_stat(density)))
-# ggplot(summary)+
-#   geom_histogram(aes(x = skewness, y = after_stat(density)))
-# ggplot(summary)+
-#   geom_histogram(aes(x = excess.kurtosis, y = after_stat(density)))
-#############################
-# Task Six
-#############################
+ggplot(summary)+
+  geom_histogram(aes(x = excess.kurtosis, y = after_stat(density)))+
+  stat_density(aes(x = excess.kurtosis), geom="line")+
+  theme_bw()
+ggplot(summary)+
+  geom_histogram(aes(x = skew, y = after_stat(density)))+
+  stat_density(aes(x= skew), geom = "line")+
+  theme_bw()
 
+
+#############################
+# Task Six cleaning data 
+#############################
 deaths.data <- read_csv(file = "Global deaths from World Bank/total_deaths.csv",
                         skip = 4) |>
   select(c(1,2,3,4,67)) |>
@@ -249,6 +268,10 @@ ggplot(deaths.data)+
   stat_density(aes(x = y2022), geom="line")+
   theme_bw()
 
+
+#############################
+# Task Seven
+#############################
 MOM.beta <- function(data, par){
   alpha <- par[1]
   beta <- par[2]
@@ -269,8 +292,6 @@ moms<- nleqslv(x = c(1,1),
 alpha.moms <- moms$x[1]
 beta.moms <- moms$x[2]
 
-moms.internal <- MOM.beta(deaths.data$y2022, c(1,1))
-
 MLE.beta <- function(data, par, neg = F){
   alpha <- par[1]
   beta <- par[2]
@@ -279,13 +300,13 @@ MLE.beta <- function(data, par, neg = F){
   return(ifelse(neg, -ll, ll))
 }
 
-mles <- optim(par = c(1, 1),
+mles <- optim(par = c(1, 10),
               fn = MLE.beta,
               data=deaths.data$y2022,
               neg=T)
 
-alpha.mle <- mles$par[1]
-beta.mle <- mles$par[2]
+(alpha.mle <- mles$par[1])
+(beta.mle <- mles$par[2])
 
 alpha = 8
 beta = 950
