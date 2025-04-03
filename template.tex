@@ -90,37 +90,62 @@
 
 \begin{multicols}{2}
 \begin{abstract}
-The beta distribution has been explored thoroughly  
-This document provides a basic template for the 2-page labs we will complete each week. Here, briefly summarize what you did and why it might be helpful. Provide all the top-line conclusions, but avoid providing \emph{all} the details. Results should be limited to ``we show X, Y, and Z."
+In this lab, we explored the beta distribution has been explored thoroughly by working with its various properties, probability distributions, and parameters. By changing the parameters, we can evaluate the effects on its statistical values such as mean, variance, skewness, and excess kurtosis. To analyze real world data on global deaths from the World Bank, we made 2 point estimators (Method of Moments and Maximum Likelihood Estimations), which both work well but the \emph{MLE} works slightly better. 
+
 \end{abstract}
 
-\noindent \textbf{Keywords:} What topics does the lab cover concerning class? List 3-4 key terms here, separated by semicolons.
+\noindent \textbf{Keywords:} point estimations; parameters; probability distributions; 
 
 \section{Introduction}
-The beta distribution is a continuous distribution that can be used to model the variability of a random variable X that ranges from 0 to 1. It is useful for modeling proportions, probabilities, or rates as its statistical characteristics are versatile enough to assume many different shapes based on its input parameters(Given that $\alpha >$ 0, $\beta$ $>$ 0). 
+The beta distribution is a continuous distribution that can be used to model the variability of a random variable $X$ that ranges from $0$ to $1$. It is useful for modeling proportions, probabilities, or rates as its statistical characteristics are versatile enough to assume many different shapes based on its input parameters (Given that $\alpha >$ 0, $\beta >$ 0). 
 
+By exploring its properties, the effects of various inputs can be seen to answer our questions about what the beta distribution is, what it can be used for, what are some of its properties, and what useful inferences can be drawn from simulation and real data analysis. 
 
-You want to provide enough background to understand the context of the work. Specifically, what is the question you are addressing? If it applies, describe what information currently exists about this problem, including citations, and explain how the question you're answering complements this work.
-
-Provide a roadmap of the structure of the paper. 
-
-\subsection{Intro Subsection}
-You might need/want to discuss the topics in subsections. Or, you may have multiple questions.
 
 %\begin{Figure}
 %\includegraphics{screenshot}
 %\end{Figure}
 
-\section{Methods}
-Describe the data you are working with, if applicable. Describe the specific process you will follow to answer the question at hand. This does not mean you should write something like this.
-\begin{quote}
-\textit{I did this and then I did that and then I did this other thing and then..., and then..., and then...}
-\end{quote}
-Instead, it should provide a clear and concise narrative that flows from the problem specification in the Introduction to how you will approach answering it. This is where I would expect to see some citations for \texttt{R} packages you will use to conduct the statistical analysis reported in the Results section.
+\section{Density Functions and Parameters}
+The beta distribution has a probability density function defined as: 
+\[
+f(x; \alpha, \beta) = \frac{\Gamma(\alpha + \beta)}{\Gamma\alpha\Gamma\beta} \, x^{\alpha - 1} (1 - x)^{\beta - 1}I(x \in [0,1])
+\] 
+
+Knowing that $x$ stays within 0 to 1, we looked at the different cases of \(Beta(\alpha, \beta)\) where \(Beta(2, 5), Beta(5,5), Beta(5, 2), \text{and }Beta(0.5, 0.5)\) and explored their properties. 
+
+The beta distributions for each plot is graphed together in Figure \ref{plot1}.
+
+\section{Properties}
+We calculated the population moments using numerical integration shown in Table \ref{table1}.
+
+Since the distribution's shape is affected by its parameters, the population characteristics are also controlled by them. To prove that its possible to approximate what the population distribution might be, we can connect our numerical summaries and graphs to the actual distribution by generating random data and comparing the calculated results against those from the known distribution, shown in Figure \ref{plot2}. The properties of mean, variance, skewness, and excess kurtosis are then compared against those from the population characteristics in Table \ref{table1}.
+
+Then we explored how the law of large numbers is proven to be true as the increasing sample size decreases the variability in the different properties of the data across different samples. This is shown in Figure \ref{plot3} and remains true when we ran random samples and the graphical representations of the properties end up converging towards the population values as sample size increased. 
 
 
-\subsection{Methods Subsection}
-Much like the Introduction, subsections can be helpful for the Methods section. For example, you might describe data collection and the statistical analyses of the collected data in different subsections. Or, you may have different questions that require distinct methods. 
+
+\begin{table}[H]
+\centering
+\begin{tabular}{rlrrrr}
+  \hline
+ & variable & mean & variance & skewness & kurtosis \\ 
+  \hline
+1 & Beta(0.5,0.5) & 0.50 & 0.12 & 0.00 & -1.50 \\ 
+  2 & Beta(2,5) & 0.29 & 0.03 & 0.60 & -0.12 \\ 
+  3 & Beta(5,2) & 0.71 & 0.03 & -0.60 & -0.12 \\ 
+  4 & Beta(5,5) & 0.50 & 0.02 & 0.00 & -0.46 \\ 
+  5 & Sample Beta(0.5,0.5) & 0.52 & 0.12 & -0.11 & 1.55 \\ 
+  6 & Sample Beta(2,5) & 0.29 & 0.03 & 0.57 & 2.78 \\ 
+  7 & Sample Beta(5,2) & 0.71 & 0.03 & -0.74 & 3.22 \\ 
+  8 & Sample Beta(5,5) & 0.50 & 0.02 & 0.06 & 2.54 \\ 
+   \hline
+\end{tabular} \caption{population moments } \label{table1}
+\end{table}
+
+
+
+\section{Estimators}
 
 \section{Results}
 Tie together the Introduction -- where you introduce the problem at hand -- and the methods --  what you propose to do to answer the question. Present your data, the results of your analyses, and how each reported aspect contributes to answering the question. This section should include table(s), statistic(s), and graphical displays. Make sure to put the results in a sensible order and that each result contributes a logical and developed solution. It should not just be a list. Avoid being repetitive. 
@@ -145,15 +170,50 @@ you cite them in your document, the bibliography section will automatically popu
 \begin{tiny}
 \bibliography{bib}
 \end{tiny}
-\end{multicols}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Appendix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\onecolumn
 \section{Appendix}
 
-If you have anything extra, you can add it here in the appendix. This can include images or tables that don't work well in the two-page setup, code snippets you might want to share, etc.
 
+\begin{figure}[H]
+\begin{center}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-2-1} 
+\end{knitrout}
+\caption{Distributions of different beta plots}
+\label{plot1} 
+\end{center}
+\end{figure}
+
+
+\begin{figure}[H]
+\begin{center}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-3-1} 
+\end{knitrout}
+\caption{Histograms of densities of beta samples}
+\label{plot2} 
+\end{center}
+\end{figure}
+
+
+
+\begin{figure}[H]
+\begin{center}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-4-1} 
+\end{knitrout}
+\caption{Graphical comparison of random samples to population data}
+\label{plot3} 
+\end{center}
+\end{figure}
+
+\end{multicols}
 \end{document}
